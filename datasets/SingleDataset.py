@@ -18,13 +18,15 @@ from .pre_process.enhance import *
 
 
 class SingleDataset(Dataset):
-	def __init__(self, path, scale_factor=2, test_flag=False):
+	def __init__(self, path, cls_path, cls_num, scale_factor=2, test_flag=False):
 		super(SingleDataset, self).__init__()
 		self.scale_factor = scale_factor
 		self.ratio = 1.0/scale_factor
 		self.test_flag = test_flag
+		self.cls_num = cls_num
 
-		self.hsi = np.load(path).astype(np.float32)	# NHWC; [0, 1]; float32
+		self.hsi = np.load(path).astype(np.float32)	# NHWC; [0, 1]; np.float32
+		self.cluster = np.load(cls_path).astype(np.int64)	# NHW; [0, cls_num); np.int64 
 
 		self.shape = self.hsi.shape
 		self.channels = self.shape[-1]
@@ -36,20 +38,27 @@ class SingleDataset(Dataset):
 
 	def __getitem__(self, index):
 		hr = self.hsi[index, ...]
+		cluster = self.cluster[index, ...]
 		
-		H, W, C = hr.shape
-		if (H % self.scale_factor !=0) or (W % self.scale_factor != 0):
-			hr = hr[0:H//self.scale_factor*self.scale_factor, 0:W//self.scale_factor*self.scale_factor, :]
+		# H, W, C = hr.shape
+		# if (H % self.scale_factor !=0) or (W % self.scale_factor != 0):
+		# 	hr = hr[0:H//self.scale_factor*self.scale_factor, 0:W//self.scale_factor*self.scale_factor, :]
+		# 	cluster = cluster[0:H//self.scale_factor*self.scale_factor, 0:W//self.scale_factor*self.scale_factor]
 
-		# enhance
-		if not self.test_flag:
-			hr = rot90(hr)
-			hr = flip(hr)
+		if self.test_flag:
+			pass
+		else:
+			# enhance
+			hr, cluster = rot90(hr, cluster)
+			hr, cluster = flip(hr, cluster)
 			hr = np.ascontiguousarray(hr)
+			cluster = np.ascontiguousarray(cluster)
+			pass
+
 		# down sample
 		lr = down_sample(hr, scale_factor=self.scale_factor, kernel_size=(9,9), sigma=3)
 
-		return lr.transpose(2,0,1), hr.transpose(2,0,1)
+		return lr.transpose(2,0,1), hr.transpose(2,0,1), cluster
 
 
 if __name__ == '__main__':

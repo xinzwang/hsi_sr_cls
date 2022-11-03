@@ -10,7 +10,7 @@ import torch.nn as nn
 
 import models
 
-class SRCore:
+class SRClusterCore:
 	def __init__(self, batch_log=10):
 		self.parallel = False
 		self.batch_log = batch_log
@@ -27,8 +27,8 @@ class SRCore:
 	def inject_device(self, device):
 		self.device=device
 
-	def build_model(self, name, channels=3, scale_factor=2):
-		self.model = getattr(models, name)(channels, scale_factor).to(self.device)
+	def build_model(self, name, channels=3, scale_factor=2, n_clusters=9, fus_mode='affine'):
+		self.model = getattr(models, name)(channels, scale_factor, n_clusters=n_clusters, fus_mode=fus_mode).to(self.device)
 	
 	def build_loss(self):
 		self.loss_fn = getattr(self.model.loss_name, )
@@ -71,12 +71,13 @@ class SRCore:
 		logger.info('  lr:%f'%(c_lr))
 		writer.add_scalar(tag='train/lr', scalar_value=c_lr, global_step=self.epoch_cnt)
 
-		for i, (lr, hr) in enumerate(tqdm(dataloader)):
+		for i, (lr, hr, cluster) in enumerate(tqdm(dataloader)):
 			lr = lr.to(device)
 			hr = hr.to(device)
+			cluster = cluster.to(device)
 
 			optimizer.zero_grad()
-			pred = model(lr)
+			pred = model((lr, cluster))
 			loss = loss_fn(pred, hr)
 			loss.backward()
 			optimizer.step()

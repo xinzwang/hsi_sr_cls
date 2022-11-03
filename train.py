@@ -14,32 +14,42 @@ from utils.logger import create_logger
 from utils.dataset import build_dataset
 from utils.test import test, visual
 from utils.seed import set_seed
-from utils.core import SRCore
+from utils.core import SRClusterCore
 
 def parse_args():
 	parser = argparse.ArgumentParser()
-	parser.add_argument('--dataset', default='ICVL', choices=['ICVL', 'CAVE', 'Pavia', 'Salinas','PaviaU', 'KSC', 'Indian'])
+	parser.add_argument('--dataset', default='CAVE', choices=['ICVL', 'CAVE', 'Pavia', 'Salinas','PaviaU', 'KSC', 'Indian'])
 	parser.add_argument('--scale_factor', default=2, type=int)
 	parser.add_argument('--batch_size', default=16, type=int)
 	parser.add_argument('--epoch', default=10001)
 	parser.add_argument('--lr', default=1e-4, type=float, help='Learning Rate')
 	parser.add_argument('--seed', default=17, type=int)
-	parser.add_argument('--device', default='cuda:4')
+	parser.add_argument('--device', default='cuda:2')
 	parser.add_argument('--parallel', default=False)
 	parser.add_argument('--device_ids', default=['cuda:5', 'cuda:6', 'cuda:7'])
 	parser.add_argument('--model', default='SSPSR')
+	parser.add_argument('--cls_num', default=19, type=int)
+	parser.add_argument('--fus_mode', default='affine')
 	# Pavia
 	# parser.add_argument('--train_path', default='/data2/wangxinzhe/codes/datasets/Pavia/sr/train_x420_y230_N256.npy')
 	# parser.add_argument('--test_path', default='/data2/wangxinzhe/codes/datasets/Pavia/sr/test_x420_y230_N256.npy')
+	# parser.add_argument('--train_cls_path', default='/data2/wangxinzhe/codes/datasets/Pavia/sr/train_x420_y230_N256_kmeans_9_0.npy')
+	# parser.add_argument('--test_cls_path', default='/data2/wangxinzhe/codes/datasets/Pavia/sr/test_x420_y230_N256_kmeans_9_0.npy')
+	# parser.add_argument('--train_cls_path', default='/data2/wangxinzhe/codes/datasets/Pavia/sr/train_x420_y230_N256_kmeans_hr_9_0.npy')
+	# parser.add_argument('--test_cls_path', default='/data2/wangxinzhe/codes/datasets/Pavia/sr/test_x420_y230_N256_kmeans_hr_9_0.npy')
 	# Salinas
 	# parser.add_argument('--train_path', default='/data2/wangxinzhe/codes/datasets/Salinas/train_x192_45_N128.npy')
 	# parser.add_argument('--test_path', default='/data2/wangxinzhe/codes/datasets/Salinas/test_x192_45_N128.npy')
 	# CAVE
-	# parser.add_argument('--train_path', default='/data2/wangxinzhe/codes/datasets/CAVE/train.npy')
-	# parser.add_argument('--test_path', default='/data2/wangxinzhe/codes/datasets/CAVE/test.npy')
+	parser.add_argument('--train_path', default='/data2/wangxinzhe/codes/datasets/CAVE/train.npy')
+	parser.add_argument('--test_path', default='/data2/wangxinzhe/codes/datasets/CAVE/test.npy')
+	# parser.add_argument('--train_cls_path', default='/data2/wangxinzhe/codes/datasets/CAVE/train_kmeans_19_0.npy')
+	# parser.add_argument('--test_cls_path', default='/data2/wangxinzhe/codes/datasets/CAVE/test_kmeans_19_0.npy')
+	parser.add_argument('--train_cls_path', default='/data2/wangxinzhe/codes/datasets/CAVE/train_kmeans_hr_19_0.npy')
+	parser.add_argument('--test_cls_path', default='/data2/wangxinzhe/codes/datasets/CAVE/test_kmeans_hr_19_0.npy')
 	# ICVL
-	parser.add_argument('--train_path', default='/data2/wangxinzhe/codes/datasets/ICVL/train/')
-	parser.add_argument('--test_path', default='/data2/wangxinzhe/codes/datasets/ICVL/test/')
+	# parser.add_argument('--train_path', default='/data2/wangxinzhe/codes/datasets/ICVL/train/')
+	# parser.add_argument('--test_path', default='/data2/wangxinzhe/codes/datasets/ICVL/test/')
 
 	args = parser.parse_args()
 	print(args)
@@ -68,23 +78,27 @@ def train(args):
 	# dataset
 	dataset, dataloader = build_dataset(
 		dataset=args.dataset, 
-		path=args.train_path, 
+		path=args.train_path,
+		cls_path=args.train_cls_path,
+		cls_num=args.cls_num,
 		batch_size=args.batch_size, 
 		scale_factor=args.scale_factor, 
 		test_flag=False)
 	test_dataset, test_dataloader = build_dataset(
 		dataset=args.dataset, 
 		path=args.test_path, 
+		cls_path=args.test_cls_path,
+		cls_num=args.cls_num,
 		batch_size=1, 
 		scale_factor=args.scale_factor, 
 		test_flag=True)
 
 	# core
-	core = SRCore(batch_log=10)
+	core = SRClusterCore(batch_log=10)
 	core.inject_logger(logger)
 	core.inject_writer(writer)
 	core.inject_device(device)
-	core.build_model(name=args.model, channels=dataset.channels, scale_factor=args.scale_factor)
+	core.build_model(name=args.model, channels=dataset.channels, scale_factor=args.scale_factor, n_clusters=args.cls_num, fus_mode=args.fus_mode)
 	
 	# loss optimizer
 	loss_fn = nn.L1Loss()

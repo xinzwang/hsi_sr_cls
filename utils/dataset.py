@@ -13,10 +13,12 @@ def SelectDatasetObject(name):
 	else:
 		raise Exception('Unknown dataset:', name)
 
-def build_dataset(dataset, path, batch_size=32, scale_factor=2, test_flag=False):
+def build_dataset(dataset, path, cls_path, cls_num, batch_size=32, scale_factor=2, test_flag=False):
 	datasetObj = SelectDatasetObject(dataset)
 	dataset = datasetObj(
 		path=path,
+		cls_path=cls_path,
+		cls_num=cls_num,
 		scale_factor=scale_factor, 
 		test_flag=test_flag,
 	)

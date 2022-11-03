@@ -11,10 +11,11 @@ import torch
 
 def test(model, dataloader, device):
 	psnr, ssim, sam, mse = [], [], [], []
-	for i, (lr, hr) in enumerate(tqdm(dataloader)):
+	for i, (lr, hr, cluster) in enumerate(tqdm(dataloader)):
 		lr = lr.to(device)
+		cluster = cluster.to(device)
 		with torch.no_grad():
-			pred = model(lr)
+			pred = model((lr,cluster))
 		assert len(pred)==1, Exception('Test batch_size should be 1, not:%d' %(len(pred)))
 		# torch->numpy; 1CHW->HWC; [0, 1]
 		hr_ = hr.cpu().numpy()[0].transpose(1,2,0)
@@ -37,10 +38,11 @@ def visual(model, dataloader, img_num=3, save_path='img/', err_gain=10, device=N
 	# infer and save
 	it = iter(dataloader)
 	for i in range(min(img_num, dataloader.__len__())):
-		lr, hr = next(it)
+		lr, hr, cluster = next(it)
 		lr = lr.to(device)
+		cluster = cluster.to(device)
 		with torch.no_grad():
-			pred = model(lr)
+			pred = model((lr, cluster))
 		assert len(pred)==1, Exception('Test batch_size should be 1, not:%d' %(len(pred)))
 		# torch->numpy; 1CHW->HWC; [0, 1]
 		hr_ = hr.cpu().numpy()[0].transpose(1,2,0)

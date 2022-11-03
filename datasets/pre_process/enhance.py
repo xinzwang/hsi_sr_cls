@@ -2,6 +2,27 @@ import cv2
 import numpy as np
 import torch 
 
+
+def rot90(img, img2, k=None):
+	"""Rotate image for k*pi/2. k=[0,1,2,3], Random rotate if k is None"""
+	if k is None:
+		k = np.random.randint(0,4)
+	return np.rot90(img, k), np.rot90(img2, k)
+
+def flip(img, img2, k=None):
+	"""Flip image horizontally or vertically. k=[0,1,2], Random flip if k is None"""
+	if k is None:
+		k = np.random.randint(0,3)
+	
+	if k==2:
+		return img, img2
+	
+	return np.flip(img, axis=k), np.flip(img2, axis=k)
+
+
+
+
+
 def rot90_torch(img, k=None):
 	"""Rotate image for k*pi/2. k=[0,1,2,3], Random rotate if k is None"""
 	if k is None:
@@ -25,19 +46,3 @@ def flip_torch(img, k=None):
 		k = np.random.randint(0,3)
 	img = img.flip(-k) if k != 0 else img
 	return img
-
-def rot90(img, k=None):
-	"""Rotate image for k*pi/2. k=[0,1,2,3], Random rotate if k is None"""
-	if k is None:
-		k = np.random.randint(0,4)
-	return np.rot90(img, k)
-
-def flip(img, k=None):
-	"""Flip image horizontally or vertically. k=[0,1,2], Random flip if k is None"""
-	if k is None:
-		k = np.random.randint(0,3)
-	
-	if k==0:
-		return img
-	
-	return np.flip(img, axis=k)
